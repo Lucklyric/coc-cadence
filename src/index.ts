@@ -2,58 +2,98 @@ import {
   commands,
   CompleteResult,
   ExtensionContext,
-  LanguageClient,
   listManager,
   sources,
-  State,
-  StateChangeEvent,
+  StatusBarItem,
+  Terminal,
   window,
   workspace,
 } from 'coc.nvim';
-import { getConfig } from './config';
+import {registerCommands} from './commands';
+import { Config, getConfig, handleConfigChanges } from './config';
+import { LanguageServerAPI } from './language-server';
 import DemoList from './lists';
+import { createActiveAccountStatusBarItem, createEmulatorStatusBarItem, updateActiveAccountStatusBarItem, updateEmulatorStatusBarItem } from './status-bar';
+import {createTerminal} from './terminal';
 
-const START_LANGUAGE_SERVER_ARGS = ['cadence', 'language-server'];
+export enum EmulatorState {
+  Stopped = 0,
+  Starting,
+  Started,
+}
+
+// The container for all data relevant to the extension.
+export class Extension {
+  config: Config;
+  ctx: ExtensionContext;
+  api: LanguageServerAPI;
+  terminal: Terminal;
+  emulatorState: EmulatorState = EmulatorState.Stopped;
+  emulatorStatusBarItem: StatusBarItem;
+  activeAccountStatusBarItem: StatusBarItem;
+
+  constructor(
+    config: Config,
+    ctx: ExtensionContext,
+    api: LanguageServerAPI,
+    terminal: Terminal,
+    emulatorStatusBarItem: StatusBarItem,
+    activeAccountStatusBarItem: StatusBarItem
+  ) {
+    this.config = config;
+    this.ctx = ctx;
+    this.api = api;
+    this.terminal = terminal;
+    this.emulatorStatusBarItem = emulatorStatusBarItem;
+    this.activeAccountStatusBarItem = activeAccountStatusBarItem;
+  }
+
+  getEmulatorState(): EmulatorState {
+    return this.emulatorState;
+  }
+
+  setEmulatorState(state: EmulatorState): void {
+    this.emulatorState = state;
+    this.api.changeEmulatorState(state).then(
+      () => {},
+      () => {}
+    );
+    // refreshCodeLenses();
+  }
+}
+
 export async function activate(context: ExtensionContext): Promise<void> {
   window.showMessage(`coc-cadence works!`);
-  const config = getConfig();
-  await config.readLocalConfig();
-  let running = false;
-  context.logger.info(`${workspace.root}`);
-  const client = new LanguageClient(
-    'cadence',
-    'Cadence',
-    {
-      command: 'flow',
-      args: START_LANGUAGE_SERVER_ARGS,
-    },
-    {
-      documentSelector: [{ scheme: 'file', language: 'cadence' }],
-      synchronize: {
-        configurationSection: 'cadence',
-      },
-      initializationOptions: {
-        accessCheckMode: config.accessCheckMode,
-        configPath: config.configPath,
-        emulatorState: 0,
-        activeAccountName: '',
-        activeAccountAddress: '',
-      },
-    }
+  let config: Config;
+  let terminal: Terminal;
+  let api: LanguageServerAPI;
+
+  try {
+    config = getConfig();
+    await config.readLocalConfig();
+    terminal = await createTerminal(context);
+    api = new LanguageServerAPI(context, config, EmulatorState.Stopped, null);
+  } catch (err: any) {
+    window.showErrorMessage('Failed to activate extension: ', err).then(
+      () => {},
+      () => {}
+    );
+    return;
+  }
+  handleConfigChanges();
+
+  const ext = new Extension(
+    config,
+    context,
+    api,
+    terminal,
+    createEmulatorStatusBarItem(),
+    createActiveAccountStatusBarItem()
   );
 
-  client
-    .onReady()
-    .then(() => window.showInformationMessage('Cadence language server started'))
-    .catch((err: Error) => window.showErrorMessage(`Cadence language server failed to start: ${err.message}`));
-
-  client.onDidChangeState((e: StateChangeEvent) => {
-    running = e.newState === State.Running;
-  });
-
-  const d = client.start();
-
-  context.subscriptions.push(d);
+  registerCommands(ext);
+  renderExtension(ext);
+  context.logger.info(`${workspace.root}`);
 
   context.subscriptions.push(
     commands.registerCommand('coc-cadence.Command', async () => {
@@ -102,4 +142,8 @@ async function getCompletionItems(): Promise<CompleteResult> {
       },
     ],
   };
+}
+export function renderExtension(ext: Extension): void {
+  updateEmulatorStatusBarItem(ext.emulatorStatusBarItem, ext.getEmulatorState());
+  updateActiveAccountStatusBarItem(ext.activeAccountStatusBarItem, ext.config.getActiveAccount());
 }

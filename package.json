@@ -5,9 +5,7 @@
   "author": "Alvin(Xinyao) Sun <lucklyric@gmail.com>",
   "license": "MIT",
   "main": "lib/index.js",
-  "keywords": [
-    "coc.nvim"
-  ],
+  "publisher": "lucklyric",
   "engines": {
     "coc": "^0.0.80"
   },
