@@ -13,6 +13,8 @@ In your vim/neovim, run the following command:
 
 or 
 
+Install it via vim-plug:
+
 `Plug 'lucklyric/coc-cadence', {'do': 'yarn install --frozen-lockfile'}`
 
 ## Features
