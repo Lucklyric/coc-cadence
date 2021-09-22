@@ -2,7 +2,7 @@
   "name": "coc-cadence",
   "version": "0.2.1",
   "description": "",
-  "author": "Alvin(Xinyao) Sun <lucklyric@gmail.com> @ WhiteMatrix Tech LTD",
+  "author": "Alvin(Xinyao) Sun <lucklyric@gmail.com> @ WhiteMatrix Tech Ltd.",
   "license": "MIT",
   "main": "lib/index.js",
   "publisher": "lucklyric",
