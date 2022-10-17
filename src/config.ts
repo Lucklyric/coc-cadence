@@ -9,7 +9,7 @@ const CONFIG_ACCESS_CHECK_MODE = 'accessCheckMode';
 export class Config {
   // The name of the Flow CLI executable.
   flowCommand: string;
-  numAccounts: number;
+  numAccounts: string;
   // Set of created accounts for which we can submit transactions.
   // Mapping from account address to account object.
   accounts: Account[];
@@ -20,7 +20,7 @@ export class Config {
   // Full path to flow.json file
   configPath: string;
 
-  constructor(flowCommand: string, numAccounts: number, accessCheckMode: string) {
+  constructor(flowCommand: string, numAccounts: string, accessCheckMode: string) {
     this.flowCommand = flowCommand;
     this.numAccounts = numAccounts;
     this.accessCheckMode = accessCheckMode;
@@ -89,9 +89,9 @@ export function getConfig(): Config {
     flowCommand = 'flow';
   }
 
-  let numAccounts: number | undefined = cadenceConfig.get(CONFIG_NUM_ACCOUNTS);
+  let numAccounts: string | undefined = cadenceConfig.get(CONFIG_NUM_ACCOUNTS);
   if (numAccounts === undefined) {
-    numAccounts = 3;
+    numAccounts = "3";
   }
 
   let accessCheckMode: string | undefined = cadenceConfig.get(CONFIG_ACCESS_CHECK_MODE);
